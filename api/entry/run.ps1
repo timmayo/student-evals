@@ -22,7 +22,6 @@ Write-Host "Rating: $($body.rating)"
 Write-Host "Comment: $($body.comment)"
 
 $submittedToken = $body.token
-$submittedToken = $body.token
 $name           = $body.name
 $course         = $body.course
 $rating         = [int]$body.rating
@@ -58,6 +57,9 @@ try {
 }
 
 # ── Validate token ───────────────────────────────────────────────────────────
+Write-Host "Valid token from KV: '$validToken'"
+Write-Host "Submitted token: '$submittedToken'"
+
 if ($submittedToken -ne $validToken) {
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Unauthorized
