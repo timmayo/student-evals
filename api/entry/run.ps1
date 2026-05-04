@@ -27,7 +27,7 @@ $course         = $body.course
 $rating         = [int]$body.rating
 $comment        = $body.comment
 
-if (-not $submittedToken -or -not $course -or -not $rating -or -not $comment) {
+if (-not $submittedToken -or -not $course -or $null -eq $body.rating -or -not $comment) {
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
         Body       = "Missing required fields."
