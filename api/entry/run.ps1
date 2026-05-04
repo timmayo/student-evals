@@ -2,12 +2,7 @@ using namespace System.Net
 
 param($Request, $TriggerMetadata)
 
-$StorageAccountName = $env:STORAGE_ACCOUNT_NAME
-$kvName             = $env:KEY_VAULT_NAME
-$tokenSecretName    = "student-evals-token"
-$storageSecretName  = "storage-account-key"
-
-# ── Parse body ──────────────────────────────────────────────────────────────
+# ── Parse body ───────────────────────────────────────────────────────────────
 $rawBody = $Request.Body
 if ($rawBody -is [string]) {
     $body = $rawBody | ConvertFrom-Json
@@ -15,52 +10,24 @@ if ($rawBody -is [string]) {
     $body = $rawBody
 }
 
+$submittedToken = [string]$body.token
+$name           = [string]$body.name
+$course         = [string]$body.course
+$rating         = [string]$body.rating
+$comment        = [string]$body.comment
+
 Write-Host "Body type: $($rawBody.GetType().Name)"
-Write-Host "Token: $($body.token)"
-Write-Host "Course: $($body.course)"
-Write-Host "Rating: $($body.rating)"
-Write-Host "Comment: $($body.comment)"
-
-$submittedToken = $body.token
-$name           = $body.name
-$course         = $body.course
-$rating         = [int]$body.rating
-$comment        = $body.comment
-
-if (-not $submittedToken -or -not $course -or $null -eq $body.rating -or -not $comment) {
-    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-        StatusCode = [HttpStatusCode]::BadRequest
-        Body       = "Missing required fields."
-    })
-    return
-}
-
-# ── Retrieve secrets from Key Vault via Managed Identity ────────────────────
-try {
-    $miToken = (Invoke-RestMethod `
-        -Uri "http://169.254.169.254/metadata/identity/oauth2/token?api-version=2018-02-01&resource=https://vault.azure.net" `
-        -Headers @{ Metadata = "true" }).access_token
-
-    $validToken = (Invoke-RestMethod `
-        -Uri "https://$kvName.vault.azure.net/secrets/$tokenSecretName/?api-version=7.3" `
-        -Headers @{ Authorization = "Bearer $miToken" }).value
-
-    $storageKey = (Invoke-RestMethod `
-        -Uri "https://$kvName.vault.azure.net/secrets/$storageSecretName/?api-version=7.3" `
-        -Headers @{ Authorization = "Bearer $miToken" }).value
-} catch {
-    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
-        StatusCode = [HttpStatusCode]::InternalServerError
-        Body       = "Failed to retrieve secrets: $_"
-    })
-    return
-}
+Write-Host "Token: '$submittedToken'"
+Write-Host "Course: '$course'"
+Write-Host "Rating: '$rating'"
+Write-Host "Comment: '$comment'"
 
 # ── Validate token ───────────────────────────────────────────────────────────
-Write-Host "Valid token from KV: '$validToken'"
-Write-Host "Submitted token: '$submittedToken'"
+$validToken = $env:STUDENT_EVALS_TOKEN
+Write-Host "Valid token from env: '$validToken'"
 
-if ($submittedToken -ne $validToken) {
+if ($submittedToken.Trim() -ne $validToken.Trim()) {
+    Write-Host "Token mismatch - rejecting"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Unauthorized
         Body       = "Invalid access code."
@@ -68,7 +35,20 @@ if ($submittedToken -ne $validToken) {
     return
 }
 
-# ── Write entry to Table Storage ─────────────────────────────────────────────
+# ── Validate required fields ──────────────────────────────────────────────────
+if (-not $course -or -not $rating -or -not $comment) {
+    Write-Host "Missing required fields"
+    Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+        StatusCode = [HttpStatusCode]::BadRequest
+        Body       = "Missing required fields."
+    })
+    return
+}
+
+Write-Host "Validation passed - writing to Table Storage"
+
+# ── Write to Table Storage ────────────────────────────────────────────────────
+$connString   = $env:STORAGE_CONNECTION_STRING
 $tableName    = "studentevals"
 $partitionKey = "eval"
 $rowKey       = [Guid]::NewGuid().ToString()
@@ -84,18 +64,29 @@ $entity = @{
     Timestamp    = $timestamp
 } | ConvertTo-Json
 
+# Parse connection string
+$connParts = @{}
+$connString.Split(';') | ForEach-Object {
+    $kv = $_ -split '=', 2
+    if ($kv.Count -eq 2) { $connParts[$kv[0]] = $kv[1] }
+}
+$accountName = $connParts['AccountName']
+$accountKey  = $connParts['AccountKey']
+
+Write-Host "Storage account: '$accountName'"
+
 $date         = [DateTime]::UtcNow.ToString("R")
-$resource     = "/$StorageAccountName/$tableName"
+$resource     = "/$accountName/$tableName"
 $stringToSign = "POST`n`napplication/json`n$date`n$resource"
-$hmac         = [System.Security.Cryptography.HMACSHA256]::new([Convert]::FromBase64String($storageKey))
+$hmac         = [System.Security.Cryptography.HMACSHA256]::new([Convert]::FromBase64String($accountKey))
 $sig          = [Convert]::ToBase64String($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($stringToSign)))
 
 try {
     Invoke-RestMethod `
-        -Uri "https://$StorageAccountName.table.core.windows.net/$tableName" `
+        -Uri "https://$accountName.table.core.windows.net/$tableName" `
         -Method POST `
         -Headers @{
-            Authorization  = "SharedKey ${StorageAccountName}:${sig}"
+            Authorization  = "SharedKey ${accountName}:${sig}"
             "x-ms-date"    = $date
             "x-ms-version" = "2019-02-02"
             "Content-Type" = "application/json"
@@ -103,11 +94,13 @@ try {
         } `
         -Body $entity | Out-Null
 
+    Write-Host "Entry written successfully"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Created
         Body       = "Eval submitted."
     })
 } catch {
+    Write-Host "Table Storage write failed: $_"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
         Body       = "Failed to save entry: $_"
