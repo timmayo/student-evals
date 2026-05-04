@@ -8,7 +8,12 @@ $tokenSecretName    = "student-evals-token"
 $storageSecretName  = "storage-account-key"
 
 # ── Parse body ──────────────────────────────────────────────────────────────
-$body = $Request.Body | ConvertFrom-Json
+$rawBody = $Request.Body
+if ($rawBody -is [string]) {
+    $body = $rawBody | ConvertFrom-Json
+} else {
+    $body = $rawBody
+}
 $submittedToken = $body.token
 $name           = $body.name
 $course         = $body.course
