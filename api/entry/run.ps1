@@ -16,18 +16,9 @@ $course         = [string]$body.course
 $rating         = [string]$body.rating
 $comment        = [string]$body.comment
 
-Write-Host "Body type: $($rawBody.GetType().Name)"
-Write-Host "Token: '$submittedToken'"
-Write-Host "Course: '$course'"
-Write-Host "Rating: '$rating'"
-Write-Host "Comment: '$comment'"
-
 # ── Validate token ───────────────────────────────────────────────────────────
 $validToken = $env:STUDENT_EVALS_TOKEN
-Write-Host "Valid token from env: '$validToken'"
-
 if ($submittedToken.Trim() -ne $validToken.Trim()) {
-    Write-Host "Token mismatch - rejecting"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Unauthorized
         Body       = "Invalid access code."
@@ -37,15 +28,12 @@ if ($submittedToken.Trim() -ne $validToken.Trim()) {
 
 # ── Validate required fields ──────────────────────────────────────────────────
 if (-not $course -or -not $rating -or -not $comment) {
-    Write-Host "Missing required fields"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::BadRequest
         Body       = "Missing required fields."
     })
     return
 }
-
-Write-Host "Validation passed - writing to Table Storage"
 
 # ── Write to Table Storage ────────────────────────────────────────────────────
 $connString   = $env:STORAGE_CONNECTION_STRING
@@ -73,8 +61,6 @@ $connString.Split(';') | ForEach-Object {
 $accountName = $connParts['AccountName']
 $accountKey  = $connParts['AccountKey']
 
-Write-Host "Storage account: '$accountName'"
-
 $date         = [DateTime]::UtcNow.ToString("R")
 $resource     = "/$accountName/$tableName"
 $stringToSign = "POST`n`napplication/json`n$date`n$resource"
@@ -94,13 +80,11 @@ try {
         } `
         -Body $entity | Out-Null
 
-    Write-Host "Entry written successfully"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::Created
         Body       = "Eval submitted."
     })
 } catch {
-    Write-Host "Table Storage write failed: $_"
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::InternalServerError
         Body       = "Failed to save entry: $_"
