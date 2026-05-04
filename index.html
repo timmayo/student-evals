@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Student Evals</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Mono:wght@300;400&family=DM+Sans:wght@300;400&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #f5f2ed;
+      --ink: #1a1a18;
+      --ink-muted: #7a7a72;
+      --rule: #d8d4cc;
+      --accent: #c8411a;
+      --card-bg: #faf9f6;
+      --card-border: #e2ddd6;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html { font-size: 16px; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'DM Sans', sans-serif;
+      font-weight: 400;
+      min-height: 100vh;
+      padding: 0 0 80px;
+    }
+
+    /* ── MASTHEAD ── */
+    .masthead {
+      border-bottom: 2px solid var(--ink);
+      padding: 32px 0 20px;
+      margin-bottom: 56px;
+      animation: fadeDown 0.5s ease both;
+    }
+    .masthead-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 32px;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .masthead-title {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 600;
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .masthead-title span {
+      font-style: italic;
+      font-weight: 400;
+    }
+    .masthead-meta {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-align: right;
+    }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 32px;
+    }
+
+    /* ── SECTION LABELS ── */
+    .section-label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--rule);
+    }
+
+    /* ── FORM ── */
+    .form-section {
+      margin-bottom: 64px;
+      animation: fadeUp 0.5s ease 0.1s both;
+    }
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+    }
+    .field { display: flex; flex-direction: column; gap: 8px; }
+    .field.full { grid-column: 1 / -1; }
+    label {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink-muted);
+    }
+    input[type="text"],
+    select,
+    textarea {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 4px;
+      padding: 12px 14px;
+      font-family: 'DM Sans', sans-serif;
+      font-size: 15px;
+      font-weight: 400;
+      color: var(--ink);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      appearance: none;
+      -webkit-appearance: none;
+      outline: none;
+    }
+    input[type="text"]:focus,
+    select:focus,
+    textarea:focus {
+      border-color: var(--ink);
+      box-shadow: 0 0 0 3px rgba(26,26,24,0.08);
+    }
+    textarea { resize: vertical; min-height: 100px; line-height: 1.6; }
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237a7a72' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 14px center;
+      padding-right: 38px;
+      cursor: pointer;
+    }
+
+    /* ── STAR RATING ── */
+    .stars {
+      display: flex;
+      gap: 4px;
+    }
+    .stars input { display: none; }
+    .stars label {
+      font-size: 28px;
+      cursor: pointer;
+      color: var(--rule);
+      transition: color 0.1s;
+      letter-spacing: 0;
+      text-transform: none;
+    }
+    .stars input:checked ~ label,
+    .stars label:hover,
+    .stars label:hover ~ label {
+      color: var(--rule);
+    }
+    .stars label:hover,
+    .stars input:checked + label,
+    .stars input:checked ~ label {
+      color: var(--accent);
+    }
+    /* Fix star direction */
+    .stars { flex-direction: row-reverse; justify-content: flex-end; }
+    .stars label:hover,
+    .stars label:hover ~ label,
+    .stars input:checked ~ label {
+      color: var(--accent);
+    }
+
+    /* ── TOKEN FIELD ── */
+    .token-row {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      margin-bottom: 20px;
+    }
+    .token-row .field { flex: 1; }
+
+    /* ── SUBMIT ── */
+    .btn {
+      background: var(--ink);
+      color: var(--bg);
+      border: none;
+      border-radius: 4px;
+      padding: 13px 28px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    .btn:hover { background: #333; }
+    .btn:active { transform: translateY(1px); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ── NOTICE ── */
+    .notice {
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 14px;
+      margin-top: 16px;
+      display: none;
+    }
+    .notice.success {
+      background: #edf7ed;
+      color: #2e6b2e;
+      border: 1px solid #b8dcb8;
+      display: block;
+    }
+    .notice.error {
+      background: #fdf0ed;
+      color: #8b2a1a;
+      border: 1px solid #f0c0b0;
+      display: block;
+    }
+
+    /* ── ENTRIES ── */
+    .entries-section { animation: fadeUp 0.5s ease 0.2s both; }
+    .entries-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 20px;
+    }
+    .entry-count {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+    }
+    .entries-list { display: flex; flex-direction: column; gap: 1px; }
+
+    .entry-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 6px;
+      padding: 24px;
+      animation: fadeUp 0.4s ease both;
+    }
+    .entry-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+    .entry-meta { display: flex; flex-direction: column; gap: 4px; }
+    .entry-name {
+      font-weight: 400;
+      font-size: 15px;
+    }
+    .entry-course {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-muted);
+      letter-spacing: 0.04em;
+    }
+    .entry-stars {
+      font-size: 16px;
+      letter-spacing: 2px;
+      flex-shrink: 0;
+    }
+    .star-filled { color: var(--accent); }
+    .star-empty { color: var(--rule); }
+    .entry-comment {
+      font-size: 15px;
+      line-height: 1.65;
+      color: var(--ink);
+      border-top: 1px solid var(--rule);
+      padding-top: 12px;
+      margin-top: 4px;
+    }
+    .entry-date {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-muted);
+      margin-top: 12px;
+      letter-spacing: 0.04em;
+    }
+
+    /* ── EMPTY STATE ── */
+    .empty-state {
+      text-align: center;
+      padding: 60px 24px;
+      color: var(--ink-muted);
+    }
+    .empty-state p:first-child {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-size: 1.4rem;
+      margin-bottom: 8px;
+    }
+    .empty-state p:last-child { font-size: 14px; }
+
+    /* ── LOADING ── */
+    .loading {
+      text-align: center;
+      padding: 40px;
+      font-family: 'DM Mono', monospace;
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      color: var(--ink-muted);
+      text-transform: uppercase;
+    }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeDown {
+      from { opacity: 0; transform: translateY(-12px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header class="masthead">
+    <div class="masthead-inner">
+      <h1 class="masthead-title">Student <span>Evals</span></h1>
+      <div class="masthead-meta">
+        Power Platform Training<br>
+        Leave feedback for future students
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <!-- ── SUBMIT FORM ── -->
+    <section class="form-section">
+      <div class="section-label">Submit an eval</div>
+
+      <div class="token-row">
+        <div class="field">
+          <label for="token">Class Access Code</label>
+          <input type="text" id="token" placeholder="Enter the code provided by your instructor" autocomplete="off" />
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="field">
+          <label for="name">Your Name <span style="font-size:9px;opacity:.6">(optional)</span></label>
+          <input type="text" id="name" placeholder="Anonymous" />
+        </div>
+        <div class="field">
+          <label for="course">Course</label>
+          <select id="course">
+            <option value="" disabled selected>Select a course…</option>
+            <option>Power Apps for Power Users</option>
+            <option>Power Automate for Power Users</option>
+            <option>Power Platform AI Builder</option>
+            <option>Power Platform ALM with Dataverse</option>
+            <option>Power Platform Copilot Studio</option>
+            <option>Power Platform for Administrators</option>
+            <option>Power Platform Governance with COE</option>
+          </select>
+        </div>
+        <div class="field full">
+          <label>Rating</label>
+          <div class="stars">
+            <input type="radio" name="rating" id="s5" value="5"><label for="s5" title="5 stars">★</label>
+            <input type="radio" name="rating" id="s4" value="4"><label for="s4" title="4 stars">★</label>
+            <input type="radio" name="rating" id="s3" value="3"><label for="s3" title="3 stars">★</label>
+            <input type="radio" name="rating" id="s2" value="2"><label for="s2" title="2 stars">★</label>
+            <input type="radio" name="rating" id="s1" value="1"><label for="s1" title="1 star">★</label>
+          </div>
+        </div>
+        <div class="field full">
+          <label for="comment">Comments</label>
+          <textarea id="comment" placeholder="What would you tell a student starting this course?"></textarea>
+        </div>
+      </div>
+
+      <button class="btn" id="submitBtn" onclick="submitEntry()">Submit Eval</button>
+      <div class="notice" id="notice"></div>
+    </section>
+
+    <!-- ── ENTRIES LIST ── -->
+    <section class="entries-section">
+      <div class="entries-header">
+        <div class="section-label" style="margin-bottom:0;flex:1">All evals</div>
+        <div class="entry-count" id="entryCount"></div>
+      </div>
+      <div class="entries-list" id="entriesList">
+        <div class="loading">Loading evals…</div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ── CONFIG ──────────────────────────────────────────────────
+    // Replace with your deployed Azure Function base URL
+    const API_BASE = 'https://YOUR_FUNCTION_APP.azurewebsites.net/api';
+    // ────────────────────────────────────────────────────────────
+
+    async function loadEntries() {
+      const list = document.getElementById('entriesList');
+      const countEl = document.getElementById('entryCount');
+      try {
+        const res = await fetch(`${API_BASE}/entries`);
+        if (!res.ok) throw new Error('Failed to load');
+        const entries = await res.json();
+        countEl.textContent = `${entries.length} eval${entries.length !== 1 ? 's' : ''}`;
+        if (entries.length === 0) {
+          list.innerHTML = `<div class="empty-state">
+            <p>No evals yet.</p>
+            <p>Be the first to leave feedback for future students.</p>
+          </div>`;
+          return;
+        }
+        list.innerHTML = entries.map((e, i) => `
+          <div class="entry-card" style="animation-delay:${i * 0.05}s">
+            <div class="entry-header">
+              <div class="entry-meta">
+                <div class="entry-name">${escHtml(e.Name || 'Anonymous')}</div>
+                <div class="entry-course">${escHtml(e.Course || '')}</div>
+              </div>
+              <div class="entry-stars">${renderStars(e.Rating)}</div>
+            </div>
+            ${e.Comment ? `<div class="entry-comment">${escHtml(e.Comment)}</div>` : ''}
+            <div class="entry-date">${formatDate(e.Timestamp)}</div>
+          </div>`).join('');
+      } catch (err) {
+        list.innerHTML = `<div class="empty-state"><p>Could not load evals.</p><p>${err.message}</p></div>`;
+      }
+    }
+
+    async function submitEntry() {
+      const token   = document.getElementById('token').value.trim();
+      const name    = document.getElementById('name').value.trim();
+      const course  = document.getElementById('course').value;
+      const rating  = document.querySelector('input[name="rating"]:checked')?.value;
+      const comment = document.getElementById('comment').value.trim();
+      const btn     = document.getElementById('submitBtn');
+      const notice  = document.getElementById('notice');
+
+      notice.className = 'notice';
+      notice.textContent = '';
+
+      if (!token)   return showNotice('error', 'Please enter your class access code.');
+      if (!course)  return showNotice('error', 'Please select a course.');
+      if (!rating)  return showNotice('error', 'Please select a star rating.');
+      if (!comment) return showNotice('error', 'Please add a comment before submitting.');
+
+      btn.disabled = true;
+      btn.textContent = 'Submitting…';
+
+      try {
+        const res = await fetch(`${API_BASE}/entry`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, name: name || 'Anonymous', course, rating: parseInt(rating), comment })
+        });
+        if (res.status === 401) throw new Error('Invalid access code.');
+        if (!res.ok) throw new Error('Submission failed. Please try again.');
+
+        showNotice('success', 'Your eval has been submitted. Thank you!');
+        document.getElementById('name').value = '';
+        document.getElementById('course').value = '';
+        document.getElementById('comment').value = '';
+        document.querySelector('input[name="rating"]:checked').checked = false;
+        loadEntries();
+      } catch (err) {
+        showNotice('error', err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Submit Eval';
+      }
+    }
+
+    function showNotice(type, msg) {
+      const el = document.getElementById('notice');
+      el.className = `notice ${type}`;
+      el.textContent = msg;
+    }
+
+    function renderStars(rating) {
+      const n = parseInt(rating) || 0;
+      return Array.from({length: 5}, (_, i) =>
+        `<span class="${i < n ? 'star-filled' : 'star-empty'}">★</span>`
+      ).join('');
+    }
+
+    function escHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    }
+
+    function formatDate(ts) {
+      if (!ts) return '';
+      try {
+        return new Date(ts).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      } catch { return ts; }
+    }
+
+    loadEntries();
+  </script>
+</body>
+</html>

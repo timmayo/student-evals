@@ -1,0 +1,11 @@
+# Azure Functions local settings (contains secrets — never commit)
+api/local.settings.json
+
+# Node / npm (if using func CLI tools locally)
+node_modules/
+
+# macOS
+.DS_Store
+
+# VS Code
+.vscode/
