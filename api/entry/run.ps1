@@ -14,6 +14,14 @@ if ($rawBody -is [string]) {
 } else {
     $body = $rawBody
 }
+
+Write-Host "Body type: $($rawBody.GetType().Name)"
+Write-Host "Token: $($body.token)"
+Write-Host "Course: $($body.course)"
+Write-Host "Rating: $($body.rating)"
+Write-Host "Comment: $($body.comment)"
+
+$submittedToken = $body.token
 $submittedToken = $body.token
 $name           = $body.name
 $course         = $body.course
