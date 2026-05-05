@@ -19,8 +19,7 @@ Write-Host "Account key length: $($accountKey.Length)"
 Write-Host "Storage account: '$accountName'"
 
 $date         = [DateTime]::UtcNow.ToString("R")
-$resource     = "/$accountName/$tableName"
-$stringToSign = "GET`n`napplication/json`n$date`n$resource"
+$stringToSign = "$date`n/$accountName/$tableName"
 $hmac         = [System.Security.Cryptography.HMACSHA256]::new([Convert]::FromBase64String($accountKey))
 $sig          = [Convert]::ToBase64String($hmac.ComputeHash([Text.Encoding]::UTF8.GetBytes($stringToSign)))
 
@@ -29,7 +28,7 @@ try {
         -Uri "https://$accountName.table.core.windows.net/${tableName}()" `
         -Method GET `
         -Headers @{
-            Authorization  = "SharedKey ${accountName}:${sig}"
+            Authorization = "SharedKeyLite ${accountName}:${sig}"
             "x-ms-date"    = $date
             "x-ms-version" = "2019-02-02"
             Accept         = "application/json;odata=nometadata"
