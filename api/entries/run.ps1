@@ -11,7 +11,7 @@ try {
     $query   = New-Object Microsoft.Azure.Cosmos.Table.TableQuery
     $entries = $table.ExecuteQuery($query) | Sort-Object Timestamp -Descending
 
-    $result = $entries | ForEach-Object {
+    $result = @($entries | ForEach-Object {
         @{
             Name      = $_.Properties['Name'].StringValue
             Course    = $_.Properties['Course'].StringValue
@@ -19,12 +19,12 @@ try {
             Comment   = $_.Properties['Comment'].StringValue
             Timestamp = $_.Properties['Timestamp'].StringValue
         }
-    }
+    })
 
     Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
         StatusCode = [HttpStatusCode]::OK
         Headers    = @{ "Content-Type" = "application/json" }
-        Body       = ($result | ConvertTo-Json -Depth 5)
+        Body       = ($result | ConvertTo-Json -Depth 5 -AsArray)
     })
 } catch {
     Write-Host "Error: $_"
