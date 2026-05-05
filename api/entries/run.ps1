@@ -14,6 +14,7 @@ $connString.Split(';') | ForEach-Object {
 }
 $accountName = $connParts['AccountName']
 $accountKey  = $connParts['AccountKey']
+Write-Host "Account key length: $($accountKey.Length)"
 
 Write-Host "Storage account: '$accountName'"
 
